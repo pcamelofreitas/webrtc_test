@@ -1,3 +1,5 @@
+import 'dart:html';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -47,10 +49,7 @@ class Signaling {
     var roomId = roomRef.id;
 
     peerConnection?.onTrack = (RTCTrackEvent event) {
-      print('Got remote track: ${event.streams[0]}');
-
       event.streams[0].getTracks().forEach((track) {
-        print('Add a track to the remoteStream $track');
         remoteStream?.addTrack(track);
       });
     };
@@ -98,20 +97,56 @@ class Signaling {
       localStream?.getTracks().forEach(
             (track) => peerConnection?.addTrack(track, localStream!),
           );
-      //TODO: collecting ice candidates bvelow
-
+      //get ice candidates
+      var calleeCandidatesCollection = roomRef.collection("calleeCandidates");
+      peerConnection?.onIceCandidate = (RTCIceCandidate candidate) {
+        calleeCandidatesCollection.add(candidate.toMap());
+      };
+      //get track and add to stream
       peerConnection?.onTrack = (RTCTrackEvent event) {
-        print('Got remote track: ${event.streams[0]}');
-
         event.streams[0].getTracks().forEach((track) {
-          print('Add a track to the remoteStream $track');
           remoteStream?.addTrack(track);
         });
       };
-      //TODO: create sdp answer
+      //create sdp server
 
-      //TODO: Listening for remote ICE candidates below
+      var data = roomSnapshot.data() as Map<String, dynamic>;
+      var offer = data['offer'];
+      await peerConnection?.setRemoteDescription(
+        RTCSessionDescription(
+          offer['sdp'],
+          offer['type'],
+        ),
+      );
 
+      var answer = await peerConnection!.createAnswer();
+
+      await peerConnection!.setLocalDescription(answer);
+
+      Map<String, dynamic> roomWithAnswer = {
+        'answer': {
+          'type': answer.type,
+          'sdp': answer.sdp,
+        }
+      };
+
+      await roomRef.update(roomWithAnswer);
+
+      roomRef.collection('callerCandidates').snapshots().listen((snapshot) {
+        for (var change in snapshot.docChanges) {
+          if (change.type == DocumentChangeType.added) {
+            Map<String, dynamic> data =
+                change.doc.data() as Map<String, dynamic>;
+            peerConnection!.addCandidate(
+              RTCIceCandidate(
+                data['candidate'],
+                data['sdpMid'],
+                data['sdpMLineIndex'],
+              ),
+            );
+          }
+        }
+      });
     }
   }
 

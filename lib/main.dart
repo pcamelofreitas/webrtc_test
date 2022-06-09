@@ -73,7 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 onPressed: () {
                   signaling.openUserMedia(_localRenderer, _remoteRenderer);
                 },
-                child: const Text('Open camera & microphone'),
+                child: const Text('Open Media'),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -81,13 +81,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   textEditingController.text = roomId!;
                   setState(() {});
                 },
-                child: const Text('Create room'),
+                child: const Text('Create'),
               ),
               ElevatedButton(
                 onPressed: () {
                   signaling.joinRoom(textEditingController.text);
                 },
-                child: const Text('Join Room'),
+                child: const Text('Join'),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -101,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Row(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(
